@@ -1,0 +1,62 @@
+---
+name: foodmap-ui
+description: Food Map's design system and UI rules for React Native screens and components — theme tokens, typography, spacing, shared components, bottom sheet content, request status chips, activity grid visuals, empty/error/loading states, and accessibility. Use whenever designing or building any screen, component, or visual polish in the app.
+---
+
+# Food Map — UI
+
+Feel: warm, food-first, photo-led, calm. Food photos are the color; the chrome stays neutral.
+
+## Before building
+Open `src/theme/tokens.ts` and `src/components/ui/` and reuse what exists. If a needed component is missing, add it to `ui/` (not inside a feature) when it will be used by 2+ features.
+
+## Tokens (create in spec 01, extend — don't fork)
+```ts
+export const colors = {
+  bg: '#FFFDF9', surface: '#FFFFFF', surfaceAlt: '#F6F1EA',
+  text: '#1F1A17', textMuted: '#6B625B', border: '#E8E0D6',
+  primary: '#E2572B', primaryText: '#FFFFFF',          // warm paprika
+  success: '#2E7D4F', warning: '#B7791F', danger: '#C0392B', info: '#2B6CB0',
+  grid0: '#EFE8DF', grid1: '#F9C9A8', grid2: '#F08A55', grid3: '#C2410C', // activity intensity
+  adRing: '#F4B400',
+};
+export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
+export const radius = { sm: 6, md: 10, lg: 16, pill: 999 };
+export const type = { caption: 12, body: 15, bodyLg: 17, title: 20, h1: 28 };
+```
+Provide a dark variant later; always read colors through a `useTheme()` hook so it's possible.
+
+## Shared components (src/components/ui)
+`Screen` (safe area + bg) · `Text` (variants) · `Button` (primary/secondary/ghost, loading state) · `Card` · `Chip` · `StatusChip` · `Avatar` · `FlagIcon` (ISO code → bundled asset) · `EmptyState` · `ErrorState` (with Retry) · `Skeleton` · `TextField` (react-hook-form compatible) · `Sheet` (wraps @gorhom/bottom-sheet).
+
+## Request status chips — never ambiguous
+| Status | Label | Color | Icon |
+|---|---|---|---|
+| pending | "Waiting for <business>" | warning | clock |
+| accepted | "Accepted" | success | check |
+| declined | "Declined" | danger | x |
+| expired | "No response — expired" | textMuted | hourglass |
+| cancelled | "Cancelled" | textMuted | slash |
+| completed | "Completed" | info | bag |
+Always icon + text, never color alone. Pending screens must say the request is **not confirmed yet**.
+
+## Activity grid visuals
+- Square 12–14pt with 3pt gap, radius 3. Week columns, Sun→Sat rows; month labels above.
+- Intensity: 0 `grid0`, 1 `grid1`, 2–3 `grid2`, 4+ `grid3`. Legend "Less ▢▢▢▢ More" under the grid.
+- Cuisine view: same cell size; flag image fills the cell (rounded); mixed day shows 🌍; faint intensity color behind the flag.
+- Today outlined; selected day has a 2pt `text` border.
+- Phone: last ~17 weeks visible, horizontal scroll to the past, "View full year" opens a modal.
+- Each cell: `accessibilityLabel="Oct 12, 3 uploads"` (cuisine view: "Oct 12, Italian" / "Oct 12, 3 cuisines"), role `button`.
+- Day panel row: 48pt thumbnail, flag, one-line description (`numberOfLines={1}`), time.
+
+## Screen states
+Every data screen: `Skeleton` while loading → `EmptyState` (friendly line + action) → `ErrorState` with Retry → content. Pull-to-refresh on lists.
+
+## Imagery
+`expo-image` with `contentFit="cover"`, blurhash/placeholder, fixed aspect ratios (1:1 food log, 4:3 menu photos). Never stretch.
+
+## Motion
+Short (150–250 ms) and purposeful. Only looping animation in the app is the promoted marker float. Respect reduce-motion everywhere.
+
+## Copy
+Short, friendly, plain. Buttons are verbs ("Request pickup", "Send table request"). Homemade sheets always show the food-safety & allergy disclaimer above the request button.

@@ -1,0 +1,60 @@
+name: Preview release
+
+# Runs after a PR is merged to main.
+# 1) Applies new migrations to the STAGING Supabase project
+# 2) Publishes an EAS Update to the "preview" channel
+# Each step is skipped until its secrets are added (GitHub → Settings → Secrets → Actions).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: preview
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+      STAGING_PROJECT_REF: ${{ secrets.STAGING_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        if: env.SUPABASE_ACCESS_TOKEN != '' && env.STAGING_PROJECT_REF != ''
+        with:
+          version: latest
+
+      - name: Migrate staging database
+        if: env.SUPABASE_ACCESS_TOKEN != '' && env.STAGING_PROJECT_REF != ''
+        run: |
+          supabase link --project-ref "$STAGING_PROJECT_REF"
+          supabase db push
+
+      - uses: actions/setup-node@v4
+        if: env.EXPO_TOKEN != '' && hashFiles('package.json') != ''
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: expo/expo-github-action@v8
+        if: env.EXPO_TOKEN != '' && hashFiles('package.json') != ''
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish EAS Update (preview)
+        if: env.EXPO_TOKEN != '' && hashFiles('package.json') != ''
+        run: |
+          npm ci
+          eas update --channel preview --auto --non-interactive
+
+      - name: Nothing configured yet
+        if: env.EXPO_TOKEN == '' && env.SUPABASE_ACCESS_TOKEN == ''
+        run: echo "::notice::Preview release skipped — add EXPO_TOKEN / SUPABASE_ACCESS_TOKEN / STAGING_* secrets to enable."

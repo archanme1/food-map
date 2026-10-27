@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+
+# Expo / React Native
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Env & secrets (keep .env.example)
+.env
+.env.*
+!.env.example
+supabase/.env
+supabase/.temp/
+supabase/.branches/
+
+# Local databases & dumps
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.sql.gz
+
+# Tests & tooling
+coverage/
+.eslintcache
+*.tsbuildinfo
+
+# Claude Code (personal, not shared)
+.claude/settings.local.json
+.claude/plans/
+CLAUDE.local.md
+
+# OS / editors
+.DS_Store
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

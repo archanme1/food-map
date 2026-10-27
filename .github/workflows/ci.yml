@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect project state
+        id: state
+        run: |
+          echo "app=$([ -f package.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "db=$([ -f supabase/config.toml ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: No app yet
+        if: steps.state.outputs.app == 'false'
+        run: echo "::notice::No package.json yet — app checks start after spec 01 (project-setup)."
+
+      - uses: actions/setup-node@v4
+        if: steps.state.outputs.app == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        if: steps.state.outputs.app == 'true'
+        run: npm ci
+
+      - name: Lint
+        if: steps.state.outputs.app == 'true'
+        run: npm run lint
+
+      - name: Typecheck
+        if: steps.state.outputs.app == 'true'
+        run: npm run typecheck
+
+      - name: Unit & component tests
+        if: steps.state.outputs.app == 'true'
+        run: npm test -- --ci
+
+      - uses: supabase/setup-cli@v1
+        if: steps.state.outputs.db == 'true'
+        with:
+          version: latest
+
+      - name: Start local Supabase (database only)
+        if: steps.state.outputs.db == 'true'
+        run: supabase db start
+
+      - name: Apply migrations + seed from scratch
+        if: steps.state.outputs.db == 'true'
+        run: supabase db reset
+
+      - name: Database tests (pgTAP)
+        if: steps.state.outputs.db == 'true'
+        run: supabase test db
+
+      - name: Generated types are up to date
+        if: steps.state.outputs.db == 'true' && steps.state.outputs.app == 'true'
+        run: |
+          supabase gen types typescript --local > /tmp/database.ts
+          diff -q /tmp/database.ts src/types/database.ts || (echo "::error::src/types/database.ts is stale — run npm run db:types" && exit 1)
